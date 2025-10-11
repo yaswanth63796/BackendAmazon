@@ -1,12 +1,11 @@
-// backend/routes/login.js
 import express from "express";
 import { db } from "../firebase.js";
 import { doc, getDoc } from "firebase/firestore";
-import bcrypt from 'bcryptjs';
+import bcrypt from "bcryptjs";
 
 const router = express.Router();
 
-router.post("/login", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -22,13 +21,16 @@ router.post("/login", async (req, res) => {
     }
 
     const userData = userSnap.data();
-const isMatch = await bcrypt.compare(password, hashedPassword);
+    const match = await bcrypt.compare(password, userData.password);
 
     if (!match) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    res.status(200).json({ message: "Login successful", user: { name: userData.name, email } });
+    res.status(200).json({
+      message: "Login successful",
+      user: { name: userData.name, email },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

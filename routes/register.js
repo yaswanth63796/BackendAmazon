@@ -2,7 +2,7 @@
 import express from "express";
 import { db } from "../firebase.js";
 import { collection, doc, getDoc, setDoc } from "firebase/firestore";
-import bcrypt from "bcrypt";
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 

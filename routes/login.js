@@ -2,7 +2,7 @@
 import express from "express";
 import { db } from "../firebase.js";
 import { doc, getDoc } from "firebase/firestore";
-import bcrypt from "bcrypt";
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -22,7 +22,7 @@ router.post("/login", async (req, res) => {
     }
 
     const userData = userSnap.data();
-    const match = await bcrypt.compare(password, userData.password);
+const isMatch = await bcrypt.compare(password, hashedPassword);
 
     if (!match) {
       return res.status(400).json({ error: "Invalid credentials" });

@@ -17,14 +17,14 @@ router.post("/", async (req, res) => {
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(400).json({ error: "Please enter correct Email and password" });
     }
 
     const userData = userSnap.data();
     const match = await bcrypt.compare(password, userData.password);
 
     if (!match) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(400).json({ error: "Please enter correct Email and password" });
     }
 
     res.status(200).json({

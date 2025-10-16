@@ -1,11 +1,15 @@
-// routes/cart.js
 import express from 'express';
 import admin from 'firebase-admin';
-import serviceAccount from '../firebaseServiceAccount.json' assert { type: "json" };
+import fs from 'fs';
+import path from 'path';
 
 const router = express.Router();
 
-// ✅ Initialize Firebase Admin (only once)
+// ✅ Read Firebase service account JSON
+const serviceAccountPath = path.resolve('./firebaseServiceAccount.json');
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+
+// ✅ Initialize Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

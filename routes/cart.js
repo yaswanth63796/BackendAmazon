@@ -1,81 +1,74 @@
-// backend/routes/cart.js
-const express = require('express');
-const admin = require('firebase-admin');
+// routes/cart.js
+import express from 'express';
+import admin from 'firebase-admin';
+
 const router = express.Router();
-
-// ✅ Initialize Firebase Admin only once
-if (!admin.apps.length) {
-  const serviceAccount = require('../firebaseServiceAccount.json');
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: 'https://clonebackend-1f3da.firebaseio.com'
-  });
-}
-
 const db = admin.firestore();
-const cartCollection = db.collection('cart');
 
-// 🛒 GET all cart items
+// GET all cart items
 router.get('/', async (req, res) => {
   try {
-    const snapshot = await cartCollection.get();
-    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json(items);
+    const snapshot = await db.collection('cart').get();
+    const cartItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(cartItems);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching cart:', error);
+    res.status(500).json({ error: 'Failed to fetch cart' });
   }
 });
 
-// 🟢 ADD item to cart
+// POST new item
 router.post('/', async (req, res) => {
   try {
-    const newItem = req.body;  // {title, price, image, quantity}
-    const docRef = await cartCollection.add(newItem);
-    res.status(201).json({ id: docRef.id, ...newItem });
+    const product = req.body;
+    await db.collection('cart').doc(product.id.toString()).set(product);
+    res.json({ message: 'Product added to cart successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error adding to cart:', error);
+    res.status(500).json({ error: 'Failed to add product' });
   }
 });
 
-// ✏️ UPDATE quantity
+// DELETE single item
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('cart').doc(id).delete();
+    res.json({ message: 'Item removed from cart' });
+  } catch (error) {
+    console.error('Error deleting item:', error);
+    res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
+// DELETE all items
+router.delete('/', async (req, res) => {
+  try {
+    const snapshot = await db.collection('cart').get();
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    res.json({ message: 'All items cleared from cart' });
+  } catch (error) {
+    console.error('Error clearing cart:', error);
+    res.status(500).json({ error: 'Failed to clear cart' });
+  }
+});
+
+// PUT update quantity
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { quantity } = req.body;
-    await cartCollection.doc(id).update({ quantity });
+    if (quantity < 1) {
+      return res.status(400).json({ error: 'Quantity must be at least 1' });
+    }
+    await db.collection('cart').doc(id).update({ quantity });
     res.json({ message: 'Quantity updated successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error updating quantity:', error);
+    res.status(500).json({ error: 'Failed to update quantity' });
   }
 });
 
-// ❌ DELETE single item
-router.delete('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await cartCollection.doc(id).delete();
-    res.json({ message: 'Item deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 🧹 CLEAR all items
-router.delete('/', async (req, res) => {
-  try {
-    const snapshot = await cartCollection.get();
-    const batch = db.batch();
-
-    snapshot.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-    res.json({ message: 'All items cleared successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-module.exports = router;
+export default router;

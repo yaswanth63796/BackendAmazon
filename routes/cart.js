@@ -1,8 +1,17 @@
 // routes/cart.js
 import express from 'express';
 import admin from 'firebase-admin';
+import serviceAccount from '../firebaseServiceAccount.json' assert { type: "json" };
 
 const router = express.Router();
+
+// ✅ Initialize Firebase Admin (only once)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
 const db = admin.firestore();
 
 // GET all cart items
@@ -29,45 +38,40 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT update quantity
+router.put('/:id', async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    await db.collection('cart').doc(req.params.id).update({ quantity });
+    res.json({ message: 'Quantity updated successfully' });
+  } catch (error) {
+    console.error('Error updating quantity:', error);
+    res.status(500).json({ error: 'Failed to update quantity' });
+  }
+});
+
 // DELETE single item
 router.delete('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    await db.collection('cart').doc(id).delete();
-    res.json({ message: 'Item removed from cart' });
+    await db.collection('cart').doc(req.params.id).delete();
+    res.json({ message: 'Item removed successfully' });
   } catch (error) {
     console.error('Error deleting item:', error);
     res.status(500).json({ error: 'Failed to delete item' });
   }
 });
 
-// DELETE all items
+// DELETE all items (clear cart)
 router.delete('/', async (req, res) => {
   try {
     const snapshot = await db.collection('cart').get();
     const batch = db.batch();
     snapshot.docs.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
-    res.json({ message: 'All items cleared from cart' });
+    res.json({ message: 'All items cleared successfully' });
   } catch (error) {
     console.error('Error clearing cart:', error);
     res.status(500).json({ error: 'Failed to clear cart' });
-  }
-});
-
-// PUT update quantity
-router.put('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { quantity } = req.body;
-    if (quantity < 1) {
-      return res.status(400).json({ error: 'Quantity must be at least 1' });
-    }
-    await db.collection('cart').doc(id).update({ quantity });
-    res.json({ message: 'Quantity updated successfully' });
-  } catch (error) {
-    console.error('Error updating quantity:', error);
-    res.status(500).json({ error: 'Failed to update quantity' });
   }
 });
 
